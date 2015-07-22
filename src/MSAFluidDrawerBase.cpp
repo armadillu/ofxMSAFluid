@@ -279,7 +279,7 @@ namespace msa {
                 for(int i=1; i < fw-1; i++) {
                     _fluidSolver->getInfoAtCell(i, j, &vel, NULL);
                     float speed2 = fabs(vel.x) * fw + fabs(vel.y) * fh;
-                    int speed = (int)min(speed2 * 255 * brightness, 255.0f);
+                    int speed = (int)min(speed2 * 255, 255.0f);
                     _pixels[index++] = (unsigned char)speed;
                     _pixels[index++] = (unsigned char)speed;
                     _pixels[index++] = (unsigned char)speed;

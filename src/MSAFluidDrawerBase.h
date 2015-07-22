@@ -25,7 +25,7 @@ namespace msa {
         
         class DrawerBase
 #ifdef MSA_HOST_OPENFRAMEWORKS
-        : public ofBaseDraws
+        //: public ofBaseDraws
 #endif
         {
         public:

@@ -16,9 +16,9 @@ ParticleSystem::ParticleSystem() {
 void ParticleSystem::updateAndDraw(const msa::fluid::Solver &solver, ofVec2f windowSize, bool drawingFluid) {
     ofVec2f invWindowSize(1.0f / windowSize.x, 1.0f / windowSize.y);
 
-	glEnable(GL_BLEND);
+//	glEnable(GL_BLEND);
 	glDisable(GL_TEXTURE_2D);
-    glBlendFunc(GL_ONE,GL_ONE);
+//    glBlendFunc(GL_ONE,GL_ONE);
 //	glEnable(GL_LINE_SMOOTH);
     ofSetLineWidth(1);
 	
@@ -39,7 +39,7 @@ void ParticleSystem::updateAndDraw(const msa::fluid::Solver &solver, ofVec2f win
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_COLOR_ARRAY);
 	
-	glDisable(GL_BLEND);
+//	glDisable(GL_BLEND);
 }
 
 

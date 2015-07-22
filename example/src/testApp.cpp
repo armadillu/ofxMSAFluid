@@ -6,6 +6,26 @@ char sz[] = "[Rd9?-2XaUP0QY[hO%9QTYQ`-W`QZhcccYQY[`b";
 float tuioXScaler = 1;
 float tuioYScaler = 1;
 
+
+void testApp::setupBlurFbo(){
+
+	ofFbo::Settings s;
+	s.width = ofGetWidth();
+	s.height = ofGetHeight();
+	s.internalformat = GL_RGBA;
+	s.textureTarget = GL_TEXTURE_RECTANGLE_ARB;
+	s.maxFilter = GL_LINEAR; GL_NEAREST;
+	s.numSamples = 2;
+	s.numColorbuffers = 1;
+	s.useDepth = false;
+	s.useStencil = false;
+
+	gpuBlur.setup(s, true, 0.5);
+	gpuBlur.setBackgroundColor(ofColor(0,255));
+}
+
+
+
 //--------------------------------------------------------------
 void testApp::setup() {	 
 	for(int i=0; i<strlen(sz); i++) sz[i] += 20;
@@ -22,14 +42,60 @@ void testApp::setup() {
 	
 	ofSetFrameRate(60);
 	ofBackground(0, 0, 0);
-	ofSetVerticalSync(false);
+	ofSetVerticalSync(true);
 	
 #ifdef USE_TUIO
 	tuioClient.start(3333);
 #endif
 
-	
-#ifdef USE_GUI 
+	RUI_SETUP();
+
+	RUI_NEW_GROUP("BLUR");
+	RUI_SHARE_PARAM(gpuBlur.blurOffset, 0, 15);
+	RUI_SHARE_PARAM(gpuBlur.blurPasses, 0, 5);
+	RUI_SHARE_PARAM(gpuBlur.numBlurOverlays,0,5);
+	RUI_SHARE_PARAM(gpuBlur.blurOverlayGain ,0,255);
+	RUI_NEW_COLOR();
+	RUI_SHARE_PARAM(drawNormalScene);
+	RUI_SHARE_PARAM(drawBlurOverlay);
+
+
+	RUI_NEW_GROUP("FLUID BLUR");
+	RUI_SHARE_PARAM(fluidCellsX, 20, 400);
+	RUI_SHARE_PARAM(resizeFluid);
+
+	RUI_NEW_GROUP("COLOR");
+	RUI_SHARE_PARAM(colorMult, 0, 10);
+	RUI_SHARE_COLOR_PARAM(currentColor);
+	RUI_SHARE_PARAM(fluidDrawer.brightness, 0, 255);
+	RUI_SHARE_PARAM(fluidSolver.fadeSpeed, 0.0, 0.1);
+
+	RUI_NEW_GROUP("PHYSICS");
+	RUI_SHARE_PARAM(velocityMult, 0, 100);
+	RUI_SHARE_PARAM(fluidSolver.speedFriction, 0.95, 1.0);
+
+	RUI_SHARE_PARAM(fluidSolver.viscocity, 0.0, 0.0015);
+	RUI_SHARE_PARAM(fluidSolver.colorDiffusion, 0.0, 0.0001);
+
+	RUI_SHARE_PARAM(fluidSolver.solverIterations, 1, 50);
+	RUI_SHARE_PARAM(fluidSolver.deltaT, 0.001, 0.5);
+
+	vector<string> titles = msa::fluid::getDrawModeTitles();
+	RUI_SHARE_ENUM_PARAM(fluidDrawer.drawMode, 0, msa::fluid::kDrawCount, titles);
+	RUI_SHARE_PARAM(fluidSolver.doRGB);
+	RUI_SHARE_PARAM(fluidSolver.doVorticityConfinement);
+	RUI_SHARE_PARAM(drawFluid);
+	RUI_SHARE_PARAM(drawParticles);
+	RUI_SHARE_PARAM(fluidSolver.wrap_x);
+	RUI_SHARE_PARAM(fluidSolver.wrap_y);
+	RUI_SHARE_PARAM(tuioXScaler, 0, 2);
+	RUI_SHARE_PARAM(tuioYScaler, 0, 2);
+
+	RUI_LOAD_FROM_XML();
+
+	TIME_SAMPLE_ENABLE();
+
+#ifdef USE_GUI
 	gui.addSlider("fluidCellsX", fluidCellsX, 20, 400);
 	gui.addButton("resizeFluid", resizeFluid);
     gui.addSlider("colorMult", colorMult, 0, 100);
@@ -54,6 +120,7 @@ void testApp::setup() {
 	gui.setDefaultKeys(true);
 	gui.setAutoSave(true);
     gui.show();
+
 #endif
 	
 	windowResized(ofGetWidth(), ofGetHeight());		// force this at start (cos I don't think it is called)
@@ -61,7 +128,8 @@ void testApp::setup() {
 	resizeFluid			= true;
 	
 	ofEnableAlphaBlending();
-	ofSetBackgroundAuto(false);
+	//ofSetBackgroundAuto(false);
+	setupBlurFbo();
 }
 
 
@@ -81,11 +149,7 @@ void testApp::addToFluid(ofVec2f pos, ofVec2f vel, bool addColor, bool addForce)
         int index = fluidSolver.getIndexForPos(pos);
 		
 		if(addColor) {
-//			Color drawColor(CM_HSV, (getElapsedFrames() % 360) / 360.0f, 1, 1);
-			ofColor drawColor;
-			drawColor.setHsb((ofGetFrameNum() % 255), 255, 255);
-			
-			fluidSolver.addColorAtIndex(index, drawColor * colorMult);
+			fluidSolver.addColorAtIndex(index, currentColor * colorMult);
 			
 			if(drawParticles)
 				particleSystem.addParticles(pos * ofVec2f(ofGetWindowSize()), 10);
@@ -93,7 +157,6 @@ void testApp::addToFluid(ofVec2f pos, ofVec2f vel, bool addColor, bool addForce)
 		
 		if(addForce)
 			fluidSolver.addForceAtIndex(index, vel * velocityMult);
-		
     }
 }
 
@@ -126,18 +189,40 @@ void testApp::update(){
 }
 
 void testApp::draw(){
+
+	gpuBlur.beginDrawScene();
+
 	if(drawFluid) {
         ofClear(0);
 		glColor3f(1, 1, 1);
 		fluidDrawer.draw(0, 0, ofGetWidth(), ofGetHeight());
 	} else {
-//		if(ofGetFrameNum()%5==0)
-            fadeToColor(0, 0, 0, 0.01);
+		fadeToColor(0, 0, 0, 0.01);
 	}
-	if(drawParticles)
+	if(drawParticles){
+		ofEnableBlendMode(OF_BLENDMODE_ADD);
+		TS_START("particles d");
 		particleSystem.updateAndDraw(fluidSolver, ofGetWindowSize(), drawFluid);
-	
-//	ofDrawBitmapString(sz, 50, 50);
+		TS_STOP("particles d");
+		ofEnableBlendMode(OF_BLENDMODE_ALPHA);
+	}
+
+	gpuBlur.endDrawScene();
+
+	gpuBlur.performBlur();
+
+
+	ofEnableBlendMode(OF_BLENDMODE_ALPHA);
+	if(drawNormalScene){
+		gpuBlur.drawSceneFBO();
+	}
+
+
+	if(drawBlurOverlay){
+		ofEnableBlendMode(OF_BLENDMODE_ADD);
+		gpuBlur.drawBlurFbo(false);
+		ofEnableBlendMode(OF_BLENDMODE_ALPHA);
+	}
 
 #ifdef USE_GUI 
 	gui.draw();

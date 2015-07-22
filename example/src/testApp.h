@@ -6,14 +6,18 @@
 
 #include "ofMain.h"
 
+#include "ofxRemoteUIServer.h"
+#include "ofxTimeMeasurements.h"
+#include "ofxFboBlur.h"
+
 // comment this line out if you don't wanna use TUIO
 // you will need ofxTUIO & ofxOsc
-#define USE_TUIO		
+//#define USE_TUIO
 
 // comment this line out if you don't wanna use the GUI
 // you will need ofxSimpleGuiToo, ofxMSAInteractiveObject & ofxXmlSettings
 // if you don't use the GUI, you won't be able to see the fluid parameters
-#define USE_GUI		
+//#define USE_GUI
 
 
 #ifdef USE_TUIO
@@ -32,6 +36,8 @@ public:
 	void setup();
 	void update();
 	void draw();
+
+	void setupBlurFbo();
 	
 	void keyPressed  (int key);
 	void mouseMoved(int x, int y );
@@ -51,10 +57,17 @@ public:
 	
 	msa::fluid::Solver      fluidSolver;
 	msa::fluid::DrawerGl	fluidDrawer;
-	
+
+	ofColor					currentColor;
 	ParticleSystem          particleSystem;
 	
 	ofVec2f                 pMouse;
+
+	ofxFboBlur gpuBlur;
+
+	bool drawNormalScene;
+	bool drawBlurOverlay;
+
 	
 #ifdef USE_TUIO
 	ofxTuioClient tuioClient;

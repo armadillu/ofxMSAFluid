@@ -31,7 +31,7 @@ namespace msa {
             _invNX = 1.0f / _NX;
             _invNY = 1.0f / _NY;
             _invNumCells = 1.0f / _numCells;
-            
+
             width           = getWidth();
             height          = getHeight();
             invWidth        = 1.0f/width;
@@ -54,6 +54,7 @@ namespace msa {
             //maa
             viscocity =  FLUID_DEFAULT_VISC;
             colorDiffusion = FLUID_DEFAULT_COLOR_DIFFUSION;
+			speedFriction = 1.0;
             
             return setSize(NX, NY);
         }
@@ -285,7 +286,7 @@ namespace msa {
         //--------------------------------------------------------------
         void Solver::update() {
             addSource(uv, uvOld);
-            
+
             if(doVorticityConfinement)
             {
                 vorticityConfinement(uvOld);
@@ -303,13 +304,20 @@ namespace msa {
             advect2d(uv, uvOld);
             
             project(uv, uvOld);
-            
+
+			if(speedFriction < 1.0f){
+				for (int i = _numCells-1; i >=0; --i){
+					uv[i] *= speedFriction;
+					uvOld[i] *= speedFriction;
+				}
+			}
+
             if(doRGB)
             {
                 addSource(color, colorOld);
                 SWAP(color, colorOld);
-                
-                if(colorDiffusion!=0. && deltaT!=0.)
+
+                if(colorDiffusion != 0.0f && deltaT != 0.0f)
                 {
                     diffuseRGB(0, colorDiffusion);
                     SWAP(color, colorOld);

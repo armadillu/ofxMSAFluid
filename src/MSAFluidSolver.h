@@ -7,6 +7,7 @@
 #pragma once
 
 #include "MSACore.h"
+#include "ofxTimeMeasurements.h"
 
 namespace msa {
 	namespace fluid {
@@ -131,6 +132,9 @@ namespace msa {
             float	colorDiffusion;
             float	viscocity;
             float	fadeSpeed;
+
+			float	 speedFriction;
+
             float	deltaT;
             bool	wrap_x;
             bool	wrap_y;
