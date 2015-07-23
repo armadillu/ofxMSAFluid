@@ -20,7 +20,7 @@ void testApp::setupBlurFbo(){
 	s.useDepth = false;
 	s.useStencil = false;
 
-	gpuBlur.setup(s, true, 0.5);
+	gpuBlur.setup(s, true, 0.25);
 	gpuBlur.setBackgroundColor(ofColor(0,255));
 }
 
@@ -67,14 +67,19 @@ void testApp::setup() {
 	RUI_NEW_GROUP("COLOR");
 	RUI_SHARE_PARAM(colorMult, 0, 10);
 	RUI_SHARE_COLOR_PARAM(currentColor);
-	RUI_SHARE_PARAM(fluidDrawer.brightness, 0, 255);
+	RUI_SHARE_PARAM(fluidDrawer.brightness, 0, 1024);
 	RUI_SHARE_PARAM(fluidSolver.fadeSpeed, 0.0, 0.1);
+
+	RUI_NEW_GROUP("MOUSE");
+	RUI_SHARE_PARAM(stirRadius, 1, 100);
+	RUI_SHARE_PARAM(stirCount, 1, 100);
 
 	RUI_NEW_GROUP("PHYSICS");
 	RUI_SHARE_PARAM(velocityMult, 0, 100);
 	RUI_SHARE_PARAM(fluidSolver.speedFriction, 0.95, 1.0);
+	RUI_SHARE_PARAM(fluidSolver.vortexGain, 0.1, 3.0);
 
-	RUI_SHARE_PARAM(fluidSolver.viscocity, 0.0, 0.0015);
+	RUI_SHARE_PARAM(fluidSolver.viscocity, 0.0, 0.000015);
 	RUI_SHARE_PARAM(fluidSolver.colorDiffusion, 0.0, 0.0001);
 
 	RUI_SHARE_PARAM(fluidSolver.solverIterations, 1, 50);
@@ -145,7 +150,7 @@ void testApp::addToFluid(ofVec2f pos, ofVec2f vel, bool addColor, bool addForce)
     if(speed > 0) {
 		pos.x = ofClamp(pos.x, 0.0f, 1.0f);
 		pos.y = ofClamp(pos.y, 0.0f, 1.0f);
-		
+
         int index = fluidSolver.getIndexForPos(pos);
 		
 		if(addColor) {
@@ -186,6 +191,7 @@ void testApp::update(){
 #endif
 	
 	fluidSolver.update();
+
 }
 
 void testApp::draw(){
@@ -280,18 +286,31 @@ void testApp::keyPressed  (int key){
 
 //--------------------------------------------------------------
 void testApp::mouseMoved(int x, int y){
-	ofVec2f eventPos = ofVec2f(x, y);
-	ofVec2f mouseNorm = ofVec2f(eventPos) / ofGetWindowSize();
-	ofVec2f mouseVel = ofVec2f(eventPos - pMouse) / ofGetWindowSize();
-	addToFluid(mouseNorm, mouseVel, true, true);
-	pMouse = eventPos;
+
+	pMouse = ofVec2f(ofEvents().getPreviousMouseX(), ofEvents().getPreviousMouseY());
+	for(int i = 0; i < stirCount; i++){
+		float r = stirRadius;
+		float rx = ofRandom(-r, r);
+		float ry = ofRandom(-r, r);
+
+		ofVec2f eventPos = ofVec2f(x + rx, y + ry);
+		ofVec2f mouseNorm = ofVec2f(eventPos) / ofGetWindowSize();
+		ofVec2f mouseVel = ofVec2f(eventPos - pMouse - ofVec2f(rx, ry)) / ofGetWindowSize();
+		addToFluid(mouseNorm, mouseVel, true, true);
+	}
 }
 
 void testApp::mouseDragged(int x, int y, int button) {
-	ofVec2f eventPos = ofVec2f(x, y);
-	ofVec2f mouseNorm = ofVec2f(eventPos) / ofGetWindowSize();
-	ofVec2f mouseVel = ofVec2f(eventPos - pMouse) / ofGetWindowSize();
-	addToFluid(mouseNorm, mouseVel, false, true);
-	pMouse = eventPos;
+
+	pMouse = ofVec2f(ofEvents().getPreviousMouseX(), ofEvents().getPreviousMouseY());
+	for(int i = 0; i < stirCount; i++){
+		float r = stirRadius;
+		float rx = ofRandom(-r, r);
+		float ry = ofRandom(-r, r);
+		ofVec2f eventPos = ofVec2f(x + rx, y + ry);
+		ofVec2f mouseNorm = ofVec2f(eventPos) / ofGetWindowSize();
+		ofVec2f mouseVel = ofVec2f(eventPos - pMouse - ofVec2f(rx, ry)) / ofGetWindowSize();
+		addToFluid(mouseNorm, mouseVel, false, true);
+	}
 }
 

@@ -68,6 +68,9 @@ public:
 	bool drawNormalScene;
 	bool drawBlurOverlay;
 
+	float stirRadius;
+	int stirCount;
+
 	
 #ifdef USE_TUIO
 	ofxTuioClient tuioClient;

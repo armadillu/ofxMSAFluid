@@ -274,7 +274,7 @@ namespace msa {
                     dw_dx *= length;
                     dw_dy *= length;
                     
-                    v = calcCurl(i, j);
+                    v = vortexGain * calcCurl(i, j);
                     
                     // N x w
                     Fvc_xy[FLUID_IX(i, j)].x = dw_dy * -v;
@@ -295,15 +295,15 @@ namespace msa {
             
             SWAP(uv, uvOld);
             
-            diffuseUV(viscocity);
+            TS(diffuseUV(viscocity));
             
-            project(uv, uvOld);
+           TS(project(uv, uvOld));
             
-            SWAP(uv, uvOld);
+            TS(SWAP(uv, uvOld));
             
-            advect2d(uv, uvOld);
+            TS(advect2d(uv, uvOld));
             
-            project(uv, uvOld);
+            TS(project(uv, uvOld));
 
 			if(speedFriction < 1.0f){
 				for (int i = _numCells-1; i >=0; --i){
@@ -323,15 +323,15 @@ namespace msa {
                     SWAP(color, colorOld);
                 }
                 
-                advectRGB(0, uv);
-                fadeRGB();
+                TS(advectRGB(0, uv));
+                TS(fadeRGB());
             }
             else
             {
                 addSource(density, densityOld);
                 SWAP(density, densityOld);
                 
-                if(colorDiffusion!=0. && deltaT!=0.) {
+                if(colorDiffusion!=0. && deltaT!=0.0f) {
                     diffuse(0, density, densityOld, colorDiffusion);
                     SWAP(density, densityOld);
                 }
@@ -617,7 +617,7 @@ namespace msa {
         void Solver::diffuseUV(float diff)
         {
             float a = deltaT * diff * _NX * _NY;
-            linearSolverUV(a, 1.0 + 4 * a);
+            linearSolverUV(a, 1.0f + 4.0f * a);
         }
         
         //--------------------------------------------------------------
@@ -736,7 +736,7 @@ namespace msa {
         {
             int index;
             int	step_x = _NX + 2;
-            c = 1. / c;
+            c = 1.0f / c;
             Vec2f* __restrict localUV = uv;
             const Vec2f* __restrict localOldUV = uvOld;
             

@@ -134,6 +134,7 @@ namespace msa {
             float	fadeSpeed;
 
 			float	 speedFriction;
+			float 	vortexGain;
 
             float	deltaT;
             bool	wrap_x;
