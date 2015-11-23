@@ -17,7 +17,7 @@ void Particle::init(float x, float y) {
 	vel = ofVec2f(0, 0);
 	radius = 5;
 	alpha  = msa::Rand::randFloat( 0.3f, 1 );
-	mass = msa::Rand::randFloat( 0.1f, 1 );
+	mass = msa::Rand::randFloat( 0.01f, 1 );
 }
 
 void Particle::update( const msa::fluid::Solver &solver, const ofVec2f &windowSize, const ofVec2f &invWindowSize ) {
@@ -26,7 +26,7 @@ void Particle::update( const msa::fluid::Solver &solver, const ofVec2f &windowSi
 		return;
 	
 	vel = solver.getVelocityAtPos( pos * invWindowSize ) * (mass * FLUID_FORCE ) * windowSize + vel * MOMENTUM;
-	pos += vel;	
+	pos += vel;
 	
 	// bounce of edges
 	if( pos.x < 0 ) {

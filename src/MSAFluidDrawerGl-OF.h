@@ -33,6 +33,7 @@ namespace msa {
                 int texWidth = _fluidSolver->getWidth()-2;
                 int texHeight =_fluidSolver->getHeight()-2;
                 tex.allocate(texWidth, texHeight, _glType);
+				tex.setTextureMinMagFilter(GL_NEAREST, GL_NEAREST);
             }
             
             

@@ -46,14 +46,15 @@ public:
 	void fadeToColor(float r, float g, float b, float speed);
 	void addToFluid(ofVec2f pos, ofVec2f vel, bool addColor, bool addForce);
 
-    
-    
+
     float                   colorMult;
     float                   velocityMult;
 	int                     fluidCellsX;
 	bool                    resizeFluid;
 	bool                    drawFluid;
 	bool                    drawParticles;
+
+	float 					fadeFactor;
 	
 	msa::fluid::Solver      fluidSolver;
 	msa::fluid::DrawerGl	fluidDrawer;

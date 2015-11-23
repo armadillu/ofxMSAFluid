@@ -15,13 +15,16 @@ void testApp::setupBlurFbo(){
 	s.internalformat = GL_RGBA;
 	s.textureTarget = GL_TEXTURE_RECTANGLE_ARB;
 	s.maxFilter = GL_LINEAR; GL_NEAREST;
-	s.numSamples = 2;
+	s.numSamples = 0;
 	s.numColorbuffers = 1;
 	s.useDepth = false;
 	s.useStencil = false;
 
 	gpuBlur.setup(s, true, 0.25);
-	gpuBlur.setBackgroundColor(ofColor(0,255));
+	//gpuBlur.setBackgroundColor(ofColor(0,255));
+	gpuBlur.beginDrawScene();
+	ofClear(0,255);
+	gpuBlur.endDrawScene();
 }
 
 
@@ -30,16 +33,7 @@ void testApp::setupBlurFbo(){
 void testApp::setup() {	 
 	for(int i=0; i<strlen(sz); i++) sz[i] += 20;
 	
-	// setup fluid stuff
-	fluidSolver.setup(100, 100);
-    fluidSolver.enableRGB(true).setFadeSpeed(0.002).setDeltaT(0.5).setVisc(0.00015).setColorDiffusion(0);
-	fluidDrawer.setup(&fluidSolver);
-	
-	fluidCellsX			= 150;
-	
-	drawFluid			= true;
-	drawParticles		= true;
-	
+
 	ofSetFrameRate(60);
 	ofBackground(0, 0, 0);
 	ofSetVerticalSync(true);
@@ -69,6 +63,9 @@ void testApp::setup() {
 	RUI_SHARE_COLOR_PARAM(currentColor);
 	RUI_SHARE_PARAM(fluidDrawer.brightness, 0, 1024);
 	RUI_SHARE_PARAM(fluidSolver.fadeSpeed, 0.0, 0.1);
+
+	RUI_SHARE_PARAM(fadeFactor, 0.0, 0.05);
+
 
 	RUI_NEW_GROUP("MOUSE");
 	RUI_SHARE_PARAM(stirRadius, 1, 100);
@@ -135,6 +132,15 @@ void testApp::setup() {
 	ofEnableAlphaBlending();
 	//ofSetBackgroundAuto(false);
 	setupBlurFbo();
+
+	// setup fluid stuff
+	float ww = ofGetWidth();
+	float hh = ofGetHeight();
+	float ar = ww / hh;
+	fluidSolver.setup(ww, ww / ar);
+	fluidSolver.enableRGB(true).setFadeSpeed(fluidSolver.fadeSpeed).setDeltaT(fluidSolver.deltaT).setVisc(fluidSolver.viscocity).setColorDiffusion(fluidSolver.colorDiffusion);
+	fluidDrawer.setup(&fluidSolver);
+
 }
 
 
@@ -146,7 +152,10 @@ void testApp::fadeToColor(float r, float g, float b, float speed) {
 
 // add force and dye to fluid, and create particles
 void testApp::addToFluid(ofVec2f pos, ofVec2f vel, bool addColor, bool addForce) {
-    float speed = vel.x * vel.x  + vel.y * vel.y * msa::getWindowAspectRatio() * msa::getWindowAspectRatio();    // balance the x and y components of speed with the screen aspect ratio
+
+	float ar = ofGetWidth() / float(ofGetHeight());
+	float speed = vel.x * vel.x  + vel.y * vel.y * ar * ar;    // balance the x and y components of speed with the screen aspect ratio
+
     if(speed > 0) {
 		pos.x = ofClamp(pos.x, 0.0f, 1.0f);
 		pos.y = ofClamp(pos.y, 0.0f, 1.0f);
@@ -155,22 +164,29 @@ void testApp::addToFluid(ofVec2f pos, ofVec2f vel, bool addColor, bool addForce)
 		
 		if(addColor) {
 			fluidSolver.addColorAtIndex(index, currentColor * colorMult);
-			
-			if(drawParticles)
-				particleSystem.addParticles(pos * ofVec2f(ofGetWindowSize()), 10);
+		}else{
+			fluidSolver.addColorAtIndex(index, currentColor.getInverted() * colorMult);
 		}
-		
-		if(addForce)
-			fluidSolver.addForceAtIndex(index, vel * velocityMult);
+		if(drawParticles)
+			particleSystem.addParticles(pos * ofVec2f(ofGetWindowSize()), 10);
+
+		if(addForce){
+			fluidSolver.addForceAtIndex(index, vel);
+		}
     }
 }
 
 
 void testApp::update(){
 	if(resizeFluid) 	{
-		fluidSolver.setSize(fluidCellsX, fluidCellsX / msa::getWindowAspectRatio());
+
+		float ww = ofGetWidth();
+		float hh = ofGetHeight();
+		float ar = ww / hh;
+		fluidSolver.setSize(fluidCellsX, fluidCellsX / ar);
 		fluidDrawer.setup(&fluidSolver);
 		resizeFluid = false;
+		RUI_PUSH_TO_CLIENT();
 	}
 	
 #ifdef USE_TUIO
@@ -189,8 +205,10 @@ void testApp::update(){
         addToFluid(ofVec2f(tcur->getX() * tuioXScaler, tcur->getY() * tuioYScaler), ofVec2f(vx, vy), true, true);
     }
 #endif
-	
+
+	TS_START("fluidSolver U");
 	fluidSolver.update();
+	TS_STOP("fluidSolver U");
 
 }
 
@@ -203,7 +221,7 @@ void testApp::draw(){
 		glColor3f(1, 1, 1);
 		fluidDrawer.draw(0, 0, ofGetWidth(), ofGetHeight());
 	} else {
-		fadeToColor(0, 0, 0, 0.01);
+		fadeToColor(0, 0, 0, fadeFactor);
 	}
 	if(drawParticles){
 		ofEnableBlendMode(OF_BLENDMODE_ADD);
@@ -287,6 +305,9 @@ void testApp::keyPressed  (int key){
 //--------------------------------------------------------------
 void testApp::mouseMoved(int x, int y){
 
+	ofVec2f ar;
+	ar.x = float(ofGetHeight()) / ofGetWidth();
+	ar.y = 1;
 	pMouse = ofVec2f(ofEvents().getPreviousMouseX(), ofEvents().getPreviousMouseY());
 	for(int i = 0; i < stirCount; i++){
 		float r = stirRadius;
@@ -295,8 +316,9 @@ void testApp::mouseMoved(int x, int y){
 
 		ofVec2f eventPos = ofVec2f(x + rx, y + ry);
 		ofVec2f mouseNorm = ofVec2f(eventPos) / ofGetWindowSize();
-		ofVec2f mouseVel = ofVec2f(eventPos - pMouse - ofVec2f(rx, ry)) / ofGetWindowSize();
+		ofVec2f mouseVel = ofVec2f(eventPos - pMouse - ofVec2f(rx, ry)) * ar;
 		addToFluid(mouseNorm, mouseVel, true, true);
+		//addToFluid(mouseNorm, 0.001 * ofVec2f(1, 1), true, true);
 	}
 }
 

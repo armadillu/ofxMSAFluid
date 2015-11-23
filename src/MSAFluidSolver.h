@@ -251,7 +251,7 @@ namespace msa {
         
         //-------- add force
         inline void Solver::addForceAtIndex(int index, const Vec2f &force) {
-            uv[index] += force;
+            uv[index] += force * ofVec2f(0.01, 0.01);
         }
         
         inline void Solver::addForceAtCell(int i, int j, const Vec2f &force) {
