@@ -10,15 +10,19 @@ int main( ){
 	winSettings.multiMonitorFullScreen = true;
 	//winSettings.monitor = 1;
 
-	winSettings.width = 5  * 900;
-	winSettings.height = 900;
+#ifdef TARGET_WIN32
+	winSettings.width = 1200 * 10;
+	winSettings.height = 1920;
+#endif
 
 	//	winSettings.width = 1200 * 6;
 	//	winSettings.height = 1920 * 2;
 
 
 	shared_ptr<ofAppBaseWindow> win = ofCreateWindow(winSettings);	// sets up the opengl context!
+#ifdef TARGET_OSX
 	((ofAppGLFWWindow*)win.get())->setWindowPosition(-1920, 0);
+#endif
 
 	ofRunApp(win, shared_ptr<ofBaseApp>(new testApp()));
 	ofRunMainLoop();

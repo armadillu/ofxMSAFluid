@@ -1,6 +1,5 @@
 #include "testApp.h"
 
-char sz[] = "[Rd9?-2XaUP0QY[hO%9QTYQ`-W`QZhcccYQY[`b";
 
 
 float tuioXScaler = 1;
@@ -20,7 +19,7 @@ void testApp::setupBlurFbo(){
 	s.useDepth = false;
 	s.useStencil = false;
 
-	gpuBlur.setup(s, true, 0.25);
+	gpuBlur.setup(s, true, 0.125);
 	//gpuBlur.setBackgroundColor(ofColor(0,255));
 	gpuBlur.beginDrawScene();
 	ofClear(0,255);
@@ -31,7 +30,6 @@ void testApp::setupBlurFbo(){
 
 //--------------------------------------------------------------
 void testApp::setup() {	 
-	for(int i=0; i<strlen(sz); i++) sz[i] += 20;
 	
 
 	ofSetFrameRate(60);
@@ -55,7 +53,7 @@ void testApp::setup() {
 
 
 	RUI_NEW_GROUP("FLUID BLUR");
-	RUI_SHARE_PARAM(fluidCellsX, 20, 400);
+	RUI_SHARE_PARAM(fluidCellsX, 20, 1200);
 	RUI_SHARE_PARAM(resizeFluid);
 
 	RUI_NEW_GROUP("COLOR");
